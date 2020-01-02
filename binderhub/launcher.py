@@ -135,6 +135,7 @@ class Launcher(LoggingConfigurable):
             prefix = '{}-{}'.format(prefix[:15], prefix[-15:])
 
         # add a random suffix to avoid collisions for users on the same image
+        # TODO: Modify code here to change servername/username. Added this TODO as a trigger
         return '{}-{}'.format(prefix, ''.join(random.choices(SUFFIX_CHARS, k=SUFFIX_LENGTH)))
 
     async def launch(self, image, username, server_name='', repo_url='', extra_args=None):

@@ -188,7 +188,8 @@ class BuildHandler(BaseHandler):
         })
 
     @authenticated
-    async def get(self, provider_prefix, _unescaped_spec):
+
+    async def get(self, provider_prefix, _unescaped_spec, u_name):
         """Get a built image for a given spec and repo provider.
 
         Different repo providers will require different spec information. This
@@ -204,7 +205,9 @@ class BuildHandler(BaseHandler):
 
         """
         prefix = '/build/' + provider_prefix
-        spec = self.get_spec_from_request(prefix)
+        # spec = self.get_spec_from_request(prefix)
+        # TODO: Instead of below step, modify func get_spec_from_request
+        spec = _unescaped_spec
 
         # set up for sending event streams
         self.set_header('content-type', 'text/event-stream')
@@ -314,7 +317,7 @@ class BuildHandler(BaseHandler):
                 'message': 'Found built image, launching...\n'
             })
             with LAUNCHES_INPROGRESS.track_inprogress():
-                await self.launch(kube, provider)
+                await self.launch(kube, provider, u_name)
             self.event_log.emit('binderhub.jupyter.org/launch', 3, {
                 'provider': provider.name,
                 'spec': spec,
@@ -420,7 +423,7 @@ class BuildHandler(BaseHandler):
             BUILD_TIME.labels(status='success').observe(time.perf_counter() - build_starttime)
             BUILD_COUNT.labels(status='success', **self.repo_metric_labels).inc()
             with LAUNCHES_INPROGRESS.track_inprogress():
-                await self.launch(kube, provider)
+                await self.launch(kube, provider, u_name)
             self.event_log.emit('binderhub.jupyter.org/launch', 3, {
                 'provider': provider.name,
                 'spec': spec,
@@ -438,7 +441,7 @@ class BuildHandler(BaseHandler):
         # well-behaved clients will close connections after they receive the launch event.
         await gen.sleep(60)
 
-    async def launch(self, kube, provider):
+    async def launch(self, kube, provider, u_name):
         """Ask JupyterHub to launch the image."""
         # Load the spec-specific configuration if it has been overridden
         repo_config = provider.repo_config(self.settings)
@@ -509,7 +512,8 @@ class BuildHandler(BaseHandler):
                     server_name = ''
             else:
                 # create a name for temporary user
-                username = launcher.unique_name_from_repo(self.repo_url)
+                # username = launcher.unique_name_from_repo(self.repo_url)
+                username = u_name
                 server_name = ''
             try:
                 extra_args = {
